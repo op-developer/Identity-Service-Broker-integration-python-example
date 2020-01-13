@@ -1,0 +1,24 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Python Test Service Provider</title>
+        <link href="https://fonts.googleapis.com/css?family=Oswald|PT+Sans" rel="stylesheet"/>
+        <link href="/static/css/style.css" type="text/css" rel="stylesheet"/>
+        {% block head %}
+        {% endblock %}
+    </head>
+    <body>
+        <div class="container">
+
+        {% block content %}
+        {% endblock %}
+
+        {% block log_in_again %}
+
+        <p><a href="/{{layout}}">Log in again</a></p>
+        {% endblock %}
+
+        </div>
+    </body>
+</html>

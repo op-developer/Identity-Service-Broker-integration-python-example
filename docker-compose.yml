@@ -1,0 +1,12 @@
+version: '2'
+services:
+  python-sp-example:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: python-sp-example
+    volumes:
+      - ./:/app
+    restart: on-failure
+    ports: 
+      - "80:3045"

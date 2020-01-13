@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+  <h1>Demo Service Provider</h1>
+</header>
+
+<p>The information received depends on the scope of identification request and on what attributes are available. Do note that not all sources of information have given name and family name available as separate attributes.</p>
+<h2>Identification information</h2>
+<table>
+    <tr>
+        <th>Name</th>
+        <td>{{ id_token['name'] }}</td>
+    </tr>
+    <tr>
+        <th>Identity code</th>
+        <td>{{ id_token['personal_identity_code'] }}</td>
+    </tr>
+    <tr>
+        <th>Time of authentication</th>
+        <td>{{ datestring }}</td>
+    </tr>
+</table>
+
+<h3>Raw data</h3>
+<pre>{ {% for key, value in id_token.items() %}
+    "{{ key }}": "{{ value }}" {% endfor %}
+}
+</pre>  
+{% endblock %}

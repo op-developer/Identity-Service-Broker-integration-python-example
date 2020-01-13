@@ -1,0 +1,15 @@
+<!DOCTYPE HTML>
+<html> <head>
+</head>
+
+<body>
+<form id="form" method="GET" action="{{ endpoint }}">
+<input type="hidden" name="request" value="{{ request }}" />
+</form>
+
+<script>
+window.onload = function() {
+    document.querySelector("#form").submit();
+};
+</script>
+</body> </html>

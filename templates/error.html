@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+  <h1>Demo Service Provider</h1>
+</header>
+
+<p>The information received depends on the scope of identification request and on what attributes are available. Do note that not all sources of information have given name and family name available as separate attributes.</p>
+<h2>Error during identification</h2>
+<h3>Error during identification</h3>
+<pre>{ 
+    {{ error }}
+}
+</pre> 
+
+<h3>Error description</h3>
+<pre>{ 
+    {{ error_description }}
+}
+</pre> 
+
+{% endblock %}
