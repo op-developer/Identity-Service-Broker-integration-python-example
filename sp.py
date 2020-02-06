@@ -100,7 +100,6 @@ def jwks_view(req, resp):
     keyset = JWKSet()
     keyset.add(decryption_key)
     keyset.add(signing_key)
-    #resp.media = keyset.export(False)
     resp.media = json.loads(keyset.export(False))
 
 @api.route("/authenticate")
@@ -155,7 +154,7 @@ async def return_view(req, resp):
     async with aiohttp.ClientSession() as httpSession:
         data = aiohttp.FormData()
         data.add_field('code', code)
-        #data.add_field('redirect_uri', 'https://{0}/return'.format(HOSTNAME))
+        data.add_field('redirect_uri', 'https://{0}/return'.format(HOSTNAME))
         data.add_field('grant_type', 'authorization_code')
         data.add_field('client_assertion', make_token_jwt())
         data.add_field('client_assertion_type', 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer')
