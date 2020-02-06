@@ -13,6 +13,7 @@ import sys
 import time
 import uuid
 import datetime
+import json
 
 from jwcrypto.jwk import JWK, JWKSet
 from jwcrypto import jwk, jws, jwe
@@ -96,7 +97,11 @@ async def front_view_embedded(req, resp):
 
 @api.route("/jwks")
 def jwks_view(req, resp):
-    return "jwks endpoint" # To Do
+    keyset = JWKSet()
+    keyset.add(decryption_key)
+    keyset.add(signing_key)
+    #resp.media = keyset.export(False)
+    resp.media = json.loads(keyset.export(False))
 
 @api.route("/authenticate")
 def jump_view(req, resp):
@@ -150,7 +155,7 @@ async def return_view(req, resp):
     async with aiohttp.ClientSession() as httpSession:
         data = aiohttp.FormData()
         data.add_field('code', code)
-        data.add_field('redirect_uri', 'https://{0}/return'.format(HOSTNAME))
+        #data.add_field('redirect_uri', 'https://{0}/return'.format(HOSTNAME))
         data.add_field('grant_type', 'authorization_code')
         data.add_field('client_assertion', make_token_jwt())
         data.add_field('client_assertion_type', 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer')
@@ -194,6 +199,18 @@ async def return_view(req, resp):
         datestring = date.strftime("%c")
         variables = repr(id_token)
 
+        if id_token["nonce"]!=sessions[sessionid].nonce:
+            error = 'nonce does not match'
+            error_description = id_token["nonce"] + ' != ' + sessions[sessionid].nonce
+            resp.html = api.template('error.html', error=error, error_description=error_description, layout=layout)
+            return
+
+        if sessionid!=sessions[sessionid].sessionid:
+            error = "state does not match"
+            error_description = sessionid + ' != ' + sessions[sessionid].sessionid            
+            resp.html = api.template('error.html', error=error, error_description=error_description, layout=layout)
+            return
+        
         resp.html = api.template('result.html', variables=variables, id_token=id_token, layout=layout, datestring=datestring)
 
         
