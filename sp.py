@@ -98,8 +98,14 @@ async def front_view_embedded(req, resp):
 @api.route("/jwks")
 def jwks_view(req, resp):
     keyset = JWKSet()
-    keyset.add(decryption_key)
-    keyset.add(signing_key)
+    dec_key = json.loads(decryption_key.export(False))
+    sig_key = json.loads(signing_key.export(False))
+    dec_key['use']='enc'
+    sig_key['use']='sig'
+    decryption_key2 = jwk.JWK.from_json(str(dec_key).replace('\'', '"'))
+    signing_key2 = jwk.JWK.from_json(str(sig_key).replace('\'', '"'))
+    keyset.add(decryption_key2)
+    keyset.add(signing_key2)
     resp.media = json.loads(keyset.export(False))
 
 @api.route("/authenticate")
