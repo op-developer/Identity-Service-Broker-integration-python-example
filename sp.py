@@ -39,6 +39,7 @@ sessions = dict()
 
 with open('sandbox-sp-key.pem', 'rb') as dec_key_file:
     decryption_key = jwk.JWK.from_pem(dec_key_file.read())
+    decryption_key._params['use'] = 'enc'
 
 # This key is used to sign payload so that ISB can verify it. 
 # In this example (sandbox) this keypair is fixed. 
@@ -46,6 +47,7 @@ with open('sandbox-sp-key.pem', 'rb') as dec_key_file:
 
 with open('sp-signing-key.pem', 'rb') as sig_key_file:
     signing_key = jwk.JWK.from_pem(sig_key_file.read())
+    signing_key._params['use'] = 'sig'
 
 
 class Session:
@@ -97,14 +99,8 @@ async def front_view_embedded(req, resp):
 @api.route("/jwks")
 def jwks_view(req, resp):
     keyset = jwk.JWKSet()
-    dec_key = json.loads(decryption_key.export(False))
-    sig_key = json.loads(signing_key.export(False))
-    dec_key['use']='enc'
-    sig_key['use']='sig'
-    decryption_key2 = jwk.JWK.from_json(str(dec_key).replace('\'', '"'))
-    signing_key2 = jwk.JWK.from_json(str(sig_key).replace('\'', '"'))
-    keyset.add(decryption_key2)
-    keyset.add(signing_key2)
+    keyset.add(decryption_key)
+    keyset.add(signing_key)
     resp.media = json.loads(keyset.export(False))
 
 @api.route("/authenticate")
