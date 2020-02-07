@@ -15,7 +15,6 @@ import uuid
 import datetime
 import json
 
-from jwcrypto.jwk import JWK, JWKSet
 from jwcrypto import jwk, jws, jwe
 from jwcrypto.common import json_encode, json_decode
 
@@ -40,6 +39,7 @@ sessions = dict()
 
 with open('sandbox-sp-key.pem', 'rb') as dec_key_file:
     decryption_key = jwk.JWK.from_pem(dec_key_file.read())
+    decryption_key._params['use'] = 'enc'
 
 # This key is used to sign payload so that ISB can verify it. 
 # In this example (sandbox) this keypair is fixed. 
@@ -47,6 +47,7 @@ with open('sandbox-sp-key.pem', 'rb') as dec_key_file:
 
 with open('sp-signing-key.pem', 'rb') as sig_key_file:
     signing_key = jwk.JWK.from_pem(sig_key_file.read())
+    signing_key._params['use'] = 'sig'
 
 
 class Session:
@@ -97,10 +98,9 @@ async def front_view_embedded(req, resp):
 
 @api.route("/jwks")
 def jwks_view(req, resp):
-    keyset = JWKSet()
+    keyset = jwk.JWKSet()
     keyset.add(decryption_key)
     keyset.add(signing_key)
-    #resp.media = keyset.export(False)
     resp.media = json.loads(keyset.export(False))
 
 @api.route("/authenticate")
@@ -155,7 +155,7 @@ async def return_view(req, resp):
     async with aiohttp.ClientSession() as httpSession:
         data = aiohttp.FormData()
         data.add_field('code', code)
-        #data.add_field('redirect_uri', 'https://{0}/return'.format(HOSTNAME))
+        data.add_field('redirect_uri', 'https://{0}/return'.format(HOSTNAME))
         data.add_field('grant_type', 'authorization_code')
         data.add_field('client_assertion', make_token_jwt())
         data.add_field('client_assertion_type', 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer')
@@ -185,12 +185,12 @@ async def return_view(req, resp):
            async with httpSession.get(ISBKEY_ENDPOINT) as jwkresp:
                keys =  await jwkresp.json()
 
-        keyset=JWKSet()
+        keyset=jwk.JWKSet()
         for key in keys['keys']:
             kid = key['kid']
-            keyset.add(JWK(**key))
+            keyset.add(jwk.JWK(**key))
             if kid==sig_key:
-                isb_cert=JWK(**key)
+                isb_cert=jwk.JWK(**key)
 
         jwstoken.verify(isb_cert)
         id_token = json_decode(jwstoken.payload)
