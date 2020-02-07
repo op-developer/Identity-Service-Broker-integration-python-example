@@ -15,7 +15,6 @@ import uuid
 import datetime
 import json
 
-from jwcrypto.jwk import JWK, JWKSet
 from jwcrypto import jwk, jws, jwe
 from jwcrypto.common import json_encode, json_decode
 
@@ -97,7 +96,7 @@ async def front_view_embedded(req, resp):
 
 @api.route("/jwks")
 def jwks_view(req, resp):
-    keyset = JWKSet()
+    keyset = jwk.JWKSet()
     dec_key = json.loads(decryption_key.export(False))
     sig_key = json.loads(signing_key.export(False))
     dec_key['use']='enc'
@@ -190,12 +189,12 @@ async def return_view(req, resp):
            async with httpSession.get(ISBKEY_ENDPOINT) as jwkresp:
                keys =  await jwkresp.json()
 
-        keyset=JWKSet()
+        keyset=jwk.JWKSet()
         for key in keys['keys']:
             kid = key['kid']
-            keyset.add(JWK(**key))
+            keyset.add(jwk.JWK(**key))
             if kid==sig_key:
-                isb_cert=JWK(**key)
+                isb_cert=jwk.JWK(**key)
 
         jwstoken.verify(isb_cert)
         id_token = json_decode(jwstoken.payload)
