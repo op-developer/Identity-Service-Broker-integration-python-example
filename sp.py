@@ -14,6 +14,7 @@ import time
 import uuid
 import datetime
 import json
+import yaml
 
 from jwcrypto import jwk, jws, jwe
 from jwcrypto.common import json_encode, json_decode
@@ -49,6 +50,13 @@ with open('sp-signing-key.pem', 'rb') as sig_key_file:
     signing_key = jwk.JWK.from_pem(sig_key_file.read())
     signing_key._params['use'] = 'sig'
 
+# Read application configuration variables
+# In this case allowed signature algorithms are described in variable allowed_algs
+# Currently ISB support RS256
+
+with open('app-config.yml') as dockerfile:
+    configuration = yaml.load(dockerfile, Loader=yaml.FullLoader)
+    allowed_algs = configuration['allowed_algs']
 
 class Session:
     """Session class
@@ -185,14 +193,12 @@ async def return_view(req, resp):
            async with httpSession.get(ISBKEY_ENDPOINT) as jwkresp:
                keys =  await jwkresp.json()
 
-        keyset=jwk.JWKSet()
         for key in keys['keys']:
             kid = key['kid']
-            keyset.add(jwk.JWK(**key))
             if kid==sig_key:
                 isb_cert=jwk.JWK(**key)
 
-        jwstoken.verify(isb_cert)
+        jwstoken.verify(isb_cert, allowed_algs)  # Signature algorithm is RS256 as defined in API specification
         id_token = json_decode(jwstoken.payload)
 
         date = datetime.datetime.now()
@@ -202,12 +208,6 @@ async def return_view(req, resp):
         if id_token["nonce"]!=sessions[sessionid].nonce:
             error = 'nonce does not match'
             error_description = id_token["nonce"] + ' != ' + sessions[sessionid].nonce
-            resp.html = api.template('error.html', error=error, error_description=error_description, layout=layout)
-            return
-
-        if sessionid!=sessions[sessionid].sessionid:
-            error = "state does not match"
-            error_description = sessionid + ' != ' + sessions[sessionid].sessionid            
             resp.html = api.template('error.html', error=error, error_description=error_description, layout=layout)
             return
         
