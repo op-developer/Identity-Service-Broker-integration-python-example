@@ -1,0 +1,5 @@
+# This variable describes allowed token signature algorithms
+# 
+# Please read https://github.com/op-developer/Identity-Service-Broker-API/blob/master/README.md for more information
+#
+allowed_algs: RS256
