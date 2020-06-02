@@ -33,17 +33,17 @@ sessions = dict()
 
 # Keys
 #
-# In this example (sandbox) this keypair is fixed. 
+# In this example (sandbox) this keypair is fixed.
 # In real production environment this value must be replaced with private key which
-# is a pair for public key published in JWKS endpoint. ISB get this public key and 
+# is a pair for public key published in JWKS endpoint. ISB get this public key and
 # crypt token with public key and in SP side token can be extracted with private key
 
 with open('sandbox-sp-key.pem', 'rb') as dec_key_file:
     decryption_key = jwk.JWK.from_pem(dec_key_file.read())
     decryption_key._params['use'] = 'enc'
 
-# This key is used to sign payload so that ISB can verify it. 
-# In this example (sandbox) this keypair is fixed. 
+# This key is used to sign payload so that ISB can verify it.
+# In this example (sandbox) this keypair is fixed.
 # In real production environment ISB fetch public key from JWKS endpoint and check signature
 
 with open('sp-signing-key.pem', 'rb') as sig_key_file:
@@ -67,7 +67,7 @@ class Session:
 
     These attributes are automatically generate: sessionid, created
     """
-    
+
     def __init__(self, **kwargs):
         self.params = kwargs
         if "sessionid" not in self.params:
@@ -90,7 +90,7 @@ api.add_route("/static/images", static=True)
 
 @api.route("/")
 def front_view(req, resp):
-    """Front page"""   
+    """Front page"""
     resp.html = api.template('index.html')
 
 @api.route("/embedded")
@@ -100,8 +100,11 @@ async def front_view_embedded(req, resp):
 
     async with aiohttp.ClientSession() as httpSession:
         async with httpSession.get(embeddedendpoint) as apiresp:
-            embedded =  await apiresp.json()
-     
+            embedded_text = await apiresp.text()
+            # handle multi-lines correctly in disturbance notification
+            embedded_text = embedded_text.replace(r"\r\n", "<br><br>")
+            embedded = json.loads(embedded_text)
+
     resp.html = api.template('embedded.html', embedded=embedded)
 
 @api.route("/jwks")
@@ -118,7 +121,7 @@ def jump_view(req, resp):
     idButton = req.params.get('idButton')
     consent = req.params.get('promptBox')
     purpose = req.params.get('purpose')
-    
+
     if idButton is not None:
         session = Session(nonce=binascii.hexlify(os.urandom(10)).decode('ascii'), idButton=idButton, consent=consent, layout='embedded')
         resp.html = api.template(
@@ -132,8 +135,8 @@ def jump_view(req, resp):
             'jump.html',
             endpoint=AUTHORIZE_ENDPOINT,
             request=make_auth_jwt(session, purpose)
-            )       
-    
+            )
+
 @api.route("/return")
 async def return_view(req, resp):
     """Return view for processing authentication results from the Identity Service Broker."""
@@ -156,7 +159,7 @@ async def return_view(req, resp):
             return
         else:
             resp.html = api.template('error.html', error=error, error_description=error_description, layout=layout)
-            return       
+            return
 
 
     # Resolve the access code
@@ -185,10 +188,10 @@ async def return_view(req, resp):
         jwetoken.decrypt(decryption_key)
 
         jwstoken = jws.JWS()
-        jwstoken.deserialize(jwetoken.payload.decode('ascii'))     
+        jwstoken.deserialize(jwetoken.payload.decode('ascii'))
 
         sig_key = jwstoken.jose_header['kid']
- 
+
         async with aiohttp.ClientSession() as httpSession:
            async with httpSession.get(ISBKEY_ENDPOINT) as jwkresp:
                keys =  await jwkresp.json()
@@ -210,10 +213,10 @@ async def return_view(req, resp):
             error_description = id_token["nonce"] + ' != ' + sessions[sessionid].nonce
             resp.html = api.template('error.html', error=error, error_description=error_description, layout=layout)
             return
-        
+
         resp.html = api.template('result.html', variables=variables, id_token=id_token, layout=layout, datestring=datestring)
 
-        
+
 def make_private_key_jwt(payload):
     """Generate a new compact JWS to identify us to ISB"""
     jwstoken = jws.JWS(payload)
