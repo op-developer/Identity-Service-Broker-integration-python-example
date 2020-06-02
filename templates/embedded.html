@@ -25,7 +25,7 @@
             <div class="info">
                 <p>Alternatively you can embed the indentification UI into your service and render it as you like. The end-user is redirected straight from your UI to the selected Identity Provider (bank, Mobile ID) instead of OP&#x27;s hosted UI.</p>
                 <p>After identifying herself the end-user is redirected back to the return_uri you specify in the authentication request. The consent can be set in the request as well.</p>
-                <p><a href="https://github.com/op-developer/Identity-Service-Broker-API/blob/master/README.md" target="_blank">See the API docs for more information.</a></p> 
+                <p><a href="https://github.com/op-developer/Identity-Service-Broker-API/blob/master/README.md" target="_blank">See the API docs for more information.</a></p>
            </div>
             <section class="params">
               <h3>Parameters for the identification request:</h3>
@@ -44,12 +44,12 @@
                   <input type="radio" name="purpose" value="normal" id="idBasic" checked>
                   <label for="idBasic">Basic identification</label>
                 </li>
-            
+
                 <li>
                   <input type="radio" name="purpose" value="weak" id="idWeak">
                   <label for="idWeak">New weak credentials</label>
                 </li>
-            
+
                 <li>
                   <input type="radio" name="purpose" value="strong" id="idStrong">
                   <label for="idStrong">New strong credentials</label>
@@ -57,7 +57,7 @@
               </ul>
             </section>
         </div>
- 
+
 
 
   <div class="note">
@@ -69,25 +69,25 @@
 </div>
 
     <h3 class="view-title">
-      Example UI 2: Embedded buttons 
-    </h3>    
+      Example UI 2: Embedded buttons
+    </h3>
 
     <div class="view">
         <div class="view-layout">
             <div class="view-main">
                 <p>{{ embedded.isbConsent }}</p>
                 <div class="alert -info">
-                    <h3 class="disturbanceTitle">{{ embedded.disturbanceInfo.header }}</h3>
-                    <div class="disturbanceMessage">{{ embedded.disturbanceInfo.text }}</div>
+                    <h3 class="disturbanceTitle">{{ embedded.disturbanceInfo.header|safe }}</h3>
+                    <div class="disturbanceMessage">{{ embedded.disturbanceInfo.text|safe }}</div>
                 </div>
-                <div class="idp-buttons">                   
+                <div class="idp-buttons">
                 {% for idp in embedded.identityProviders %}
                     <div class="idp-button">
                         <button type="submit" class="id-button" name="idButton" id="{{ idp.ftn_idp_id }}" value="{{ idp.ftn_idp_id }}">
                             <img src="{{ idp.imageUrl }}" alt="{{ idp.name }}" >
                         </button>
-                    </div>         
-                {% endfor %}   
+                    </div>
+                {% endfor %}
                 </div>
                 <p>{{ embedded.isbProviderInfo }}</p>
             </div>
