@@ -205,6 +205,9 @@ th {
   height: 2.5em;
   margin-top: 2em;
 }
+.view-left {
+  text-align: left;
+}
 
 .alert {
   position: relative;
