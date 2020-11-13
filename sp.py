@@ -15,7 +15,6 @@ import uuid
 import datetime
 import json
 import yaml
-import re
 
 from jwcrypto import jwk, jws, jwe
 from jwcrypto.common import json_encode, json_decode
@@ -102,7 +101,6 @@ async def front_view_embedded(req, resp):
     async with aiohttp.ClientSession() as httpSession:
         async with httpSession.get(embeddedendpoint) as apiresp:
             embedded_text = await apiresp.text()
-            embedded_text = re.sub('<[^<]+?>', '', embedded_text) #strip possible html
             # handle multi-lines correctly in disturbance notification
             embedded_text = embedded_text.replace(r"\r\n", "<br><br>")
             embedded = json.loads(embedded_text)
