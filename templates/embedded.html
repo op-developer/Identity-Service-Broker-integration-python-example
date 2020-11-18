@@ -65,6 +65,7 @@
     <ul>
         <li>{{ embedded.isbConsent }}</li>
         <li>{{ embedded.isbProviderInfo }}</li>
+        <li><a href={{ embedded.privacyNoticeLink }} target="_blank">{{ embedded.privacyNoticeText }}</a></li>
     </ul>
 </div>
 
@@ -75,7 +76,8 @@
     <div class="view">
         <div class="view-layout">
             <div class="view-main">
-                <p>{{ embedded.isbConsent }}</p>
+                <p class="view-left">{{ embedded.isbConsent }}</p>
+                <p class="view-left"><a href={{ embedded.privacyNoticeLink }} target="_blank">{{ embedded.privacyNoticeText }}</a></p>
                 <div class="alert -info">
                     <h3 class="disturbanceTitle">{{ embedded.disturbanceInfo.header|safe }}</h3>
                     <div class="disturbanceMessage">{{ embedded.disturbanceInfo.text|safe }}</div>
@@ -89,7 +91,7 @@
                     </div>
                 {% endfor %}
                 </div>
-                <p>{{ embedded.isbProviderInfo }}</p>
+                <p class="view-left">{{ embedded.isbProviderInfo }}</p>
             </div>
         </div>
     </div>
