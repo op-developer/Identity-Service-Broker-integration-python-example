@@ -1,34 +1,33 @@
 # Service Provider integration example for the OP Identity Service Broker
 
-This repository provides an easy way to test OP identification
-services. It also serves as a Python-based implementation example to help Servide Providers (SP) to integrate to the OP Identitity Service Broker (ISB). 
+This repository provides an easy way to test OP identification services. It also serves as a Python-based implementation example to help Service Providers (SP) integrate to the OP Identity Service Broker (ISB).
 
-This example project provides an easy way to test the OP Identity Service Broker. The example contains integration codes written in Python and gives an in-depth presentation of the things that a service provider must implement on their own service in order to integrate into the OP identity service broker. This example is for service providers whose application is built with Python.
+This example project provides an easy way to test the OP Identity Service Broker. The example contains integration code written in Python and gives an in-depth presentation of the things that a service provider must implement on their own service in order to integrate with the OP Identity Service Broker. This example is for service providers whose application is built with Python.
 
-This example is the OP Demo Service Provider, which runs in a Docker container and it connects with the OP ISB sandbox environment.
+This example is a demo service provider, which runs in a Docker container and connects to the OP ISB sandbox environment.
 
-This Demo Service Provider gives you two different examples how to integrate to the OP's Identity Service Broker:
-- OP's hosted Identification UI
-- Embedded identification UI with buttons
+This demo service provider gives you two different examples how to integrate to the OP Identity Service Broker:
+- Using OP's identification wall
+- Using an identification wall embedded into the service provider UI
 
-## OP's hosted Identification UI
+## OP identification wall
 
-In this example the Identification UI is hosted by the OP's Identity Service Broker. Authorization is started by clicking the "Identify Yourself" - button shown on the UI.
+In this example the identification wall is provided by the OP Identity Service Broker. Authorization is started by clicking the "Identify Yourself" - button shown on the UI.
 
-## Embedded identification UI with buttons
+## Embedded identification wall
 
-In this example the Identification UI is embedded into the Demo Service Provider. Authorization request is sent by clicking one of the Identity Provider buttons shown on the UI.
+In this example the identification wall is embedded into the demo service provider. Authorization request is sent by clicking one of the Identity Provider buttons shown on the UI.
 
 ## Additional parameters for testing purposes
 
 In all two examples it is possible to select the identification purpose (See the scope-parameter in the flow chapter of the API-document):
 - normal
-- weak (for weak identifiers, for example user account with user-id and password)
-- strong (for official strong authentication), only for officially licensed members in Finnish Trust network
+- weak (for chaining weak identifiers, for example creating a user account with user-id and password)
+- strong (for chaining official strong authentication), only for officially licensed members in Finnish Trust network
 
-In your implementation there won't be such selection for the end users. The purpose selection is there to illustrate how it looks like at the code level and in the interface between the SP and the ISB when the SP is using such purpose. SP needs to use one of these three methods when initiating the identification process with the ISB.
+In your implementation there won't be such selection for the end users. The purpose selection is there to illustrate the purpose field at code level and in the interface between the SP and the ISB when the SP is using such purpose. SP needs to use one of these three methods when initiating the identification process with the ISB.
 
-In all two examples it is also possible to select whether consent is required or not (See the consent-parameter in the flow chapter of the API-document). In your implementation there won't be such selection for the end users. The consent parameter is there to illustrate how it looks like in the code level, in the ISB UI and in the interface between the SP and the ISB when the SP is requesting consent to be requested from the end users during the identification process. It is up to the SP to decide during the implementation phase whether to request this consent or not.
+With both two examples it is also possible to select whether consent is required or not (See the consent-parameter in the flow chapter of the API-document). In your implementation there won't be such selection for the end users. The consent parameter is there to illustrate the field at code level, in the ISB UI and in the interface between the SP and the ISB when the SP is requesting consent to be requested from the end users during the identification process. It is up to the SP to decide during the implementation phase whether to request this consent or not.
 
 Screenshot for the Service Provider example:
 
@@ -50,7 +49,7 @@ There is no return URL check in the sandbox environment. In a production environ
 
 This test code uses client_id 'saippuakauppias'. 
 
-Python libraries used: aiohttp, jwcrypto, responder
+Python libraries used: aiohttp, jinja2, jwcrypto and sanic.
 
 Keys are stored at files:
 - sandbox-sp-key.pem: Service Provider private key for encryption
@@ -69,7 +68,7 @@ Sandbox environment endpoints
 
 ## Documentation
 
-The OP Identity Service Broker (ISB) API-documentation is available here. See https://github.com/op-developer/Identity-Service-Broker-API .
+The OP Identity Service Broker (ISB) API-documentation is available here: https://github.com/op-developer/Identity-Service-Broker-API .
 
 ## Security limitations
 
