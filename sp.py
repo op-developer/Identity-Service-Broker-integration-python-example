@@ -5,16 +5,15 @@
 import aiohttp
 import base64
 import binascii
+import jinja2
 import jwcrypto
 import os
-import responder
-import requests
+import sanic
 import sys
 import time
 import uuid
 import datetime
 import json
-import yaml
 
 from jwcrypto import jwk, jws, jwe
 from jwcrypto.common import json_encode, json_decode
@@ -27,6 +26,7 @@ ISBEMBEDDED_ENDPOINT='https://isb-test.op.fi/api/embedded-ui/'
 
 CLIENT_ID='saippuakauppias'
 HOSTNAME='localhost'
+ALLOWED_ALGS=['RS256',]
 
 # Global sessions db (in-memory)
 sessions = dict()
@@ -40,7 +40,7 @@ sessions = dict()
 
 with open('sandbox-sp-key.pem', 'rb') as dec_key_file:
     decryption_key = jwk.JWK.from_pem(dec_key_file.read())
-    decryption_key._params['use'] = 'enc'
+    decryption_key['use'] = 'enc'
 
 # This key is used to sign payload so that ISB can verify it.
 # In this example (sandbox) this keypair is fixed.
@@ -48,15 +48,8 @@ with open('sandbox-sp-key.pem', 'rb') as dec_key_file:
 
 with open('sp-signing-key.pem', 'rb') as sig_key_file:
     signing_key = jwk.JWK.from_pem(sig_key_file.read())
-    signing_key._params['use'] = 'sig'
+    signing_key['use'] = 'sig'
 
-# Read application configuration variables
-# In this case allowed signature algorithms are described in variable allowed_algs
-# Currently ISB support RS256
-
-with open('app-config.yml') as dockerfile:
-    configuration = yaml.load(dockerfile, Loader=yaml.FullLoader)
-    allowed_algs = configuration['allowed_algs']
 
 class Session:
     """Session class
@@ -83,19 +76,24 @@ class Session:
         return object.__getattribute__(self, key)
 
 
-api = responder.API(static_dir="/app/static", static_route="/static")
+app = sanic.Sanic("python-sp-example")
+app.static("/static", "/app/static")
 
-api.add_route("/static/css", static=True)
-api.add_route("/static/images", static=True)
+jinja = jinja2.Environment(
+    autoescape=True,
+    loader=jinja2.FileSystemLoader("/app/templates"),
+    )
 
-@api.route("/")
-def front_view(req, resp):
+
+@app.route("/")
+def front_view(req):
     """Front page"""
-    resp.html = api.template('index.html')
+    template = jinja.get_template('index.html')
+    return sanic.response.html(template.render())
 
-@api.route("/embedded")
-async def front_view_embedded(req, resp):
-    """Front page"""
+@app.route("/embedded")
+async def front_view_embedded(req):
+    """Front page for embedded mode"""
     embeddedendpoint = ISBEMBEDDED_ENDPOINT + CLIENT_ID + '?lang=en'
 
     async with aiohttp.ClientSession() as httpSession:
@@ -105,46 +103,47 @@ async def front_view_embedded(req, resp):
             embedded_text = embedded_text.replace(r"\r\n", "<br><br>")
             embedded = json.loads(embedded_text)
 
-    resp.html = api.template('embedded.html', embedded=embedded)
+    template = jinja.get_template('embedded.html')
+    return sanic.response.html(template.render(embedded=embedded))
 
-@api.route("/jwks")
-def jwks_view(req, resp):
+@app.route("/jwks")
+def jwks_view(req):
     keyset = jwk.JWKSet()
     keyset.add(decryption_key)
     keyset.add(signing_key)
-    resp.media = json.loads(keyset.export(False))
+    return sanic.response.json(json.loads(keyset.export(False)))
 
-@api.route("/authenticate")
-def jump_view(req, resp):
+@app.route("/authenticate")
+def jump_view(req):
     """Jump view linked to from front page. Redirects to Identity Service Broker."""
 
-    idButton = req.params.get('idButton')
-    consent = req.params.get('promptBox')
-    purpose = req.params.get('purpose')
+    idButton = req.args.get('idButton')
+    consent = req.args.get('promptBox')
+    purpose = req.args.get('purpose')
+
+    template = jinja.get_template('jump.html')
 
     if idButton is not None:
         session = Session(nonce=binascii.hexlify(os.urandom(10)).decode('ascii'), idButton=idButton, consent=consent, layout='embedded')
-        resp.html = api.template(
-            'jump.html',
+        return sanic.response.html(template.render(
             endpoint=AUTHORIZE_ENDPOINT,
             request=make_auth_jwt(session, purpose)
-            )
+            ))
     else:
         session = Session(nonce=binascii.hexlify(os.urandom(10)).decode('ascii'), consent=consent, layout='')
-        resp.html = api.template(
-            'jump.html',
+        return sanic.response.html(template.render(
             endpoint=AUTHORIZE_ENDPOINT,
             request=make_auth_jwt(session, purpose)
-            )
+            ))
 
-@api.route("/return")
-async def return_view(req, resp):
+@app.route("/return")
+async def return_view(req):
     """Return view for processing authentication results from the Identity Service Broker."""
 
-    code = req.params.get('code')
-    error = req.params.get('error')
-    sessionid = req.params.get('state')
-    error_description = req.params.get('error_description')
+    code = req.args.get('code')
+    error = req.args.get('error')
+    sessionid = req.args.get('state')
+    error_description = req.args.get('error_description')
 
     layout = '' # Default value (to be populated with '' or 'embedded')
 
@@ -155,12 +154,11 @@ async def return_view(req, resp):
 
     if error:
         if error=='cancel':
-            resp.html = api.template('cancel.html', error=error, layout=layout)
-            return
+            template = jinja.get_template('cancel.html')
+            return sanic.response.html(template.render(error=error, layout=layout))
         else:
-            resp.html = api.template('error.html', error=error, error_description=error_description, layout=layout)
-            return
-
+            template = jinja.get_template('error.html')
+            return sanic.response.html(template.render(error=error, error_description=error_description, layout=layout))
 
     # Resolve the access code
     async with aiohttp.ClientSession() as httpSession:
@@ -188,6 +186,7 @@ async def return_view(req, resp):
         jwetoken.decrypt(decryption_key)
 
         jwstoken = jws.JWS()
+        jwstoken.allowed_algs = ALLOWED_ALGS
         jwstoken.deserialize(jwetoken.payload.decode('ascii'))
 
         sig_key = jwstoken.jose_header['kid']
@@ -201,7 +200,7 @@ async def return_view(req, resp):
             if kid==sig_key:
                 isb_cert=jwk.JWK(**key)
 
-        jwstoken.verify(isb_cert, allowed_algs)  # Signature algorithm is RS256 as defined in API specification
+        jwstoken.verify(isb_cert)
         id_token = json_decode(jwstoken.payload)
 
         date = datetime.datetime.now()
@@ -210,11 +209,12 @@ async def return_view(req, resp):
 
         if id_token["nonce"]!=sessions[sessionid].nonce:
             error = 'nonce does not match'
-            error_description = id_token["nonce"] + ' != ' + sessions[sessionid].nonce
-            resp.html = api.template('error.html', error=error, error_description=error_description, layout=layout)
-            return
+            error_description = '{} != {}'.format(id_token["nonce"], sessions[sessionid].nonce)
+            template = jinja.get_template('error.html')
+            return sanic.response.html(template.render(error=error, error_description=error_description, layout=layout))
 
-        resp.html = api.template('result.html', variables=variables, id_token=id_token, layout=layout, datestring=datestring)
+        template = jinja.get_template('result.html')
+        return sanic.response.html(template.render(variables=variables, id_token=id_token, layout=layout, datestring=datestring))
 
 
 def make_private_key_jwt(payload):
@@ -266,4 +266,4 @@ def make_auth_jwt(session, purpose):
 
 
 if __name__=='__main__':
-    api.run()
+    app.run(host="0.0.0.0", port=3045, debug=False)

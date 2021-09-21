@@ -8,13 +8,14 @@ pytest = "*"
 pylint = "*"
 
 [packages]
-responder = "*"
-jwcrypto = "*"
-aiohttp = "*"
 aiodns = "*"
+aiohttp = "*"
+jinja2 = "*"
+jwcrypto = "*"
+sanic = "*"
 
 [requires]
-python_version = "3.8"
+python_version = "3.9"
 
 [pipenv]
-allow_prereleases = true
+allow_prereleases = false
