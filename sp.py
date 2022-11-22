@@ -25,9 +25,9 @@ ISB_ISS='https://isb-test.op.fi'
 
 CLIENT_ID='saippuakauppias'
 FTN_SPNAME=dict(
-    fi='saippuakauppias',
-    sv='tvålhandlare',
-    en='soap merchant'
+    fi='Saippuaa kansalle',
+    sv='tvål för folket',
+    en='Soap for the people'
 )
 HOSTNAME='localhost'
 ALLOWED_ALGS=['RS256',]
