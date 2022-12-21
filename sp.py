@@ -6,10 +6,8 @@ import aiohttp
 import base64
 import binascii
 import jinja2
-import jwcrypto
 import os
 import sanic
-import sys
 import time
 import uuid
 import datetime
@@ -21,12 +19,19 @@ from jwcrypto.common import json_encode, json_decode
 
 AUTHORIZE_ENDPOINT='https://isb-test.op.fi/oauth/authorize'
 TOKEN_ENDPOINT='https://isb-test.op.fi/oauth/token'
-ISBKEY_ENDPOINT='https://isb-test.op.fi/jwks/broker'
+ISBKEY_ENDPOINT='https://isb-test.op.fi/jwks/broker-signed'
 ISBEMBEDDED_ENDPOINT='https://isb-test.op.fi/api/embedded-ui/'
+ISB_ISS='https://isb-test.op.fi'
 
 CLIENT_ID='saippuakauppias'
+FTN_SPNAME=dict(
+    fi='Saippuaa kansalle',
+    sv='tvål för folket',
+    en='Soap for the people'
+)
 HOSTNAME='localhost'
 ALLOWED_ALGS=['RS256',]
+ENTITY_EXP_TIME = 90000 # 25 hours
 
 # Global sessions db (in-memory)
 sessions = dict()
@@ -49,6 +54,24 @@ with open('sandbox-sp-key.pem', 'rb') as dec_key_file:
 with open('sp-signing-key.pem', 'rb') as sig_key_file:
     signing_key = jwk.JWK.from_pem(sig_key_file.read())
     signing_key['use'] = 'sig'
+
+# This key is used to sign SP Entity Statement and the signed JWKS.
+# In this example (sandbox) this keypair is fixed.
+# In real production environment ISB verifies the signature agaist the
+# public key which is exchanged separately and manually
+
+with open('sandbox-sp-entity-signing-key.pem', 'rb') as entity_key_file:
+    entity_signing_key = jwk.JWK.from_pem(entity_key_file.read())
+    entity_signing_key['use'] = 'sig'
+
+# This key is is the ISB public Entity Stement signing key.
+# In this example (sandbox) this keypair is fixed.
+# In real production environment SP verifies the ISB signed JWS signature
+# agaist this key. OP will provide the key.
+
+with open('sandbox-isb-entity-signing-pubkey.pem', 'rb') as isb_entity_key_file:
+    isb_entity_signing_key = jwk.JWK.from_pem(isb_entity_key_file.read())
+    isb_entity_signing_key['use'] = 'sig'
 
 
 class Session:
@@ -106,12 +129,76 @@ async def front_view_embedded(req):
     template = jinja.get_template('embedded.html')
     return sanic.response.html(template.render(embedded=embedded))
 
-@app.route("/jwks")
+@app.route("/.well-known/openid-federation")
+def entity_statement_view(req):
+    # create keyset
+    keyset = jwk.JWKSet()
+    keyset.add(entity_signing_key)
+    # create Entity Statement JSON web token
+    openid_relying_party=dict(
+        redirect_uris=['https://{0}/oauth/code'.format(HOSTNAME)],
+        application_type='web',
+        id_token_signed_response_alg='RS256',
+        id_token_encrypted_response_alg='RSA-OAEP',
+        id_token_encrypted_response_enc='A128CBC-HS256',
+        request_object_signing_alg='RS256',
+        token_endpoint_auth_method='private_key_jwt',
+        token_endpoint_auth_signing_alg='RS256',
+        client_registration_types=[],
+        organization_name='Saippuakauppias',
+        signed_jwks_uri='https://{0}/signed-jwks'.format(HOSTNAME)
+    )
+    entity_stament = dict(
+        iss='https://{0}'.format(HOSTNAME),
+        sub='https://{0}'.format(HOSTNAME),
+        iat=int(time.time()),
+        exp=int(time.time()) + ENTITY_EXP_TIME,
+        jwks=dict(keys = []),
+        metadata=dict(openid_relying_party=openid_relying_party)
+     )
+    entity_stament['jwks']=json.loads(keyset.export(False))
+    entity_statement_token = jws.JWS(json_encode(entity_stament))
+    # sign the Entity Statement JWT
+    entity_statement_token.add_signature(
+        entity_signing_key,
+        alg="RS256",
+        protected=json_encode(dict(
+            alg='RS256',
+            typ='entity-statement+jwt',
+            kid=entity_signing_key.thumbprint()
+            )))
+    return sanic.response.raw(
+        entity_statement_token.serialize(True),
+        headers={'content-type': 'application/entity-statement+jwt'}
+        )
+
+@app.route("/signed-jwks")
 def jwks_view(req):
+    # create keyset
     keyset = jwk.JWKSet()
     keyset.add(decryption_key)
     keyset.add(signing_key)
-    return sanic.response.json(json.loads(keyset.export(False)))
+    # create JWS
+    jwks_to_sign = json_encode(dict(
+        keys=json.loads(keyset.export(False)),
+        iss='https://{0}'.format(HOSTNAME),
+        sub='https://{0}'.format(HOSTNAME),
+        iat=int(time.time()),
+        exp=int(time.time()) + ENTITY_EXP_TIME
+        ))
+    jwstoken = jws.JWS(jwks_to_sign)
+    # sign it
+    jwstoken.add_signature(
+        entity_signing_key,
+        alg="RS256",
+        protected=json_encode(dict(
+            alg='RS256',
+            kid=entity_signing_key.thumbprint()
+            )))
+    return sanic.response.raw(
+        jwstoken.serialize(True),
+        headers={'content-type': 'application/jose'}
+        )
 
 @app.route("/authenticate")
 def jump_view(req):
@@ -192,10 +279,34 @@ async def return_view(req):
         sig_key = jwstoken.jose_header['kid']
 
         async with aiohttp.ClientSession() as httpSession:
-           async with httpSession.get(ISBKEY_ENDPOINT) as jwkresp:
-               keys =  await jwkresp.json()
+            async with httpSession.get(ISBKEY_ENDPOINT) as jwks_resp:
+                try:
+                    # jwks_resp is a signed JSON web token
+                    signed_jwks_token = jws.JWS()
+                    signed_jwks_token.deserialize(await jwks_resp.text())
+                    jwks_payload = json.loads(signed_jwks_token.objects['payload'])
+                except:
+                    raise Exception("processing of signed JWKS JWS failed")
+                try:
+                    # create keyset
+                    keyset = jwk.JWKSet()
+                    keyset.add(isb_entity_signing_key)
+                    # verify the signature with the ISB public entity key
+                    signed_jwks_token.verify(keyset)
+                except:
+                    raise Exception("Verifying the signed JWKS signature failed")
+                # Verify ISS and SUB
+                if (jwks_payload['iss'] != jwks_payload['sub'] or jwks_payload['iss'] != ISB_ISS ):
+                    raise Exception("Verifying the ISS or SUB failed")
+                # verify IAT and EXP
+                now = time.time()
+                iat = jwks_payload['iat']
+                exp = jwks_payload['exp']
+                if not (iat <= now < exp):
+                    raise Exception("Verifying IAT and EXP failed")
 
-        for key in keys['keys']:
+
+        for key in  jwks_payload['keys']:
             kid = key['kid']
             if kid==sig_key:
                 isb_cert=jwk.JWK(**key)
@@ -251,7 +362,8 @@ def make_auth_jwt(session, purpose):
         nonce=session.nonce,
         state=session.sessionid,
         scope="openid profile personal_identity_code " + purpose,
-        response_type="code"
+        response_type="code",
+        ftn_spname=FTN_SPNAME['en']
         )
 
     if session.consent=='consent':
