@@ -197,7 +197,7 @@ def jwks_view(req):
             )))
     return sanic.response.raw(
         jwstoken.serialize(True),
-        headers={'content-type': 'application/jose'}
+        headers={'content-type': 'application/jwk-set+jwt'}
         )
 
 @app.route("/authenticate")
