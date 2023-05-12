@@ -31,7 +31,7 @@ FTN_SPNAME=dict(
 )
 HOSTNAME='localhost'
 ALLOWED_ALGS=['RS256',]
-ENTITY_EXP_TIME = 90000 # 25 hours
+ENTITY_EXP_TIME = 60 * 60 * 24 * 365 * 10 # 10 years
 
 # Global sessions db (in-memory)
 sessions = dict()
