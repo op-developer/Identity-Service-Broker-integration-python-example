@@ -180,7 +180,7 @@ def jwks_view(req):
     keyset.add(signing_key)
     # create JWS
     jwks_to_sign = json_encode(dict(
-        keys=json.loads(keyset.export(False)),
+        keys=json.loads(keyset.export(False))['keys'],
         iss='https://{0}'.format(HOSTNAME),
         sub='https://{0}'.format(HOSTNAME),
         iat=int(time.time()),
