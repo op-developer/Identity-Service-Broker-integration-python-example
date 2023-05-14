@@ -31,7 +31,7 @@ FTN_SPNAME=dict(
 )
 HOSTNAME='localhost'
 ALLOWED_ALGS=['RS256',]
-ENTITY_EXP_TIME = 90000 # 25 hours
+ENTITY_EXP_TIME = 60 * 60 * 24 * 365 * 10 # 10 years
 
 # Global sessions db (in-memory)
 sessions = dict()
@@ -180,7 +180,7 @@ def jwks_view(req):
     keyset.add(signing_key)
     # create JWS
     jwks_to_sign = json_encode(dict(
-        keys=json.loads(keyset.export(False)),
+        keys=json.loads(keyset.export(False))['keys'],
         iss='https://{0}'.format(HOSTNAME),
         sub='https://{0}'.format(HOSTNAME),
         iat=int(time.time()),
