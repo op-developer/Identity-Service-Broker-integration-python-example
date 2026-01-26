@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: Copyright 2026 OP Pohjola (https://op.fi)
+#
+# SPDX-License-Identifier: MIT
+
 FROM python:3.14-slim
 
 # Keeps Python from generating .pyc files in the container

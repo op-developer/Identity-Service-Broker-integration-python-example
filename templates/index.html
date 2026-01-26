@@ -1,3 +1,9 @@
+{#
+    SPDX-FileCopyrightText: Copyright 2026 OP Pohjola (https://op.fi)
+
+    SPDX-License-Identifier: MIT
+#}
+
 {% extends "base.html" %}
 
 {% block content %}
@@ -43,12 +49,12 @@
                   <input type="radio" name="purpose" value="normal" id="idBasic" checked>
                   <label for="idBasic">Basic identification</label>
                 </li>
-            
+
                 <li>
                   <input type="radio" name="purpose" value="weak" id="idWeak">
                   <label for="idWeak">New weak credentials</label>
                 </li>
-            
+
                 <li>
                   <input type="radio" name="purpose" value="strong" id="idStrong">
                   <label for="idStrong">New strong credentials</label>
@@ -56,7 +62,7 @@
               </ul>
             </section>
         </div>
-    
+
     <h3 class="view-title">
         Example UI
             1: Hosted UI

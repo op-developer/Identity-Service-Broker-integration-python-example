@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: Copyright 2026 OP Pohjola (https://op.fi)
+
+SPDX-License-Identifier: MIT
+-->
+
 # Service Provider integration example for the OP Identity Service Broker
 
 This repository provides an easy way to test OP identification services. It also serves as a Python-based implementation example to help Service Providers (SP) integrate to the OP Identity Service Broker (ISB).
