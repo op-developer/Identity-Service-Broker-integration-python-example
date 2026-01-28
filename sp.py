@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: Copyright 2026 OP Pohjola (https://op.fi)
+#
+# SPDX-License-Identifier: MIT
+
 #
 # Python-based test service provider for OP Identity Service Broker's OIDC api
 

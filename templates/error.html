@@ -1,3 +1,9 @@
+{#
+    SPDX-FileCopyrightText: Copyright 2026 OP Pohjola (https://op.fi)
+
+    SPDX-License-Identifier: MIT
+#}
+
 {% extends "base.html" %}
 
 {% block content %}
@@ -9,15 +15,15 @@
 <p>The information received depends on the scope of identification request and on what attributes are available. Do note that not all sources of information have given name and family name available as separate attributes.</p>
 <h2>Error during identification</h2>
 <h3>Error during identification</h3>
-<pre>{ 
+<pre>{
     {{ error }}
 }
-</pre> 
+</pre>
 
 <h3>Error description</h3>
-<pre>{ 
+<pre>{
     {{ error_description }}
 }
-</pre> 
+</pre>
 
 {% endblock %}
